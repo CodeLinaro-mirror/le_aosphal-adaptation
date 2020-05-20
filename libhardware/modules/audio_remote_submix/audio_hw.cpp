@@ -395,7 +395,7 @@ static void submix_audio_device_create_pipe_l(struct submix_audio_device * const
 #endif // ENABLE_RESAMPLING
     }
     // Save the address
-    strncpy(rsxadev->routes[route_idx].address, address, AUDIO_DEVICE_MAX_ADDRESS_LEN);
+    strlcpy(rsxadev->routes[route_idx].address, address, AUDIO_DEVICE_MAX_ADDRESS_LEN);
     ALOGD("  now using address %s for route %d", rsxadev->routes[route_idx].address, route_idx);
     // If a pipe isn't associated with the device, create one.
     if (rsxadev->routes[route_idx].rsxSink == NULL || rsxadev->routes[route_idx].rsxSource == NULL)
@@ -1768,7 +1768,7 @@ static int adev_open(const hw_module_t* module, const char* name,
 
     for (int i=0 ; i < MAX_ROUTES ; i++) {
             memset(&rsxadev->routes[i], 0, sizeof(route_config));
-            strcpy(rsxadev->routes[i].address, "");
+            strlcpy(rsxadev->routes[i].address, "", 1);
         }
 
     *device = &rsxadev->device.common;

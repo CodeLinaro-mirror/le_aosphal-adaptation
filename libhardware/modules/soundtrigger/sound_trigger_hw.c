@@ -361,7 +361,8 @@ void send_event_with_handle(sound_model_handle_t* model_handle_str,
 
 static void send_event(int conn_socket, struct stub_sound_trigger_device* stdev, int event_type,
                        int status) {
-    char* model_uuid_str = strtok(NULL, " \r\n");
+    char* save_ptr = NULL;
+    char* model_uuid_str = strtok_r(NULL, " \r\n", &save_ptr);
     sound_trigger_uuid_t model_uuid;
     if (str_to_uuid(model_uuid_str, &model_uuid)) {
         sound_model_handle_t* model_handle_str = get_model_handle_with_uuid(stdev, model_uuid);
@@ -515,7 +516,8 @@ void list_models(int conn_socket, char* buffer,
 
 // Gets the next word from buffer, replaces '\n' or ' ' with '\0'.
 char* get_command(char* buffer) {
-    char* command = strtok(buffer, " ");
+    char* save_ptr = NULL;
+    char* command = strtok_r(buffer, " ", &save_ptr);
     char* newline = strchr(command, '\n');
     if (newline != NULL) {
         *newline = '\0';
@@ -539,7 +541,8 @@ bool parse_socket_data(int conn_socket, struct stub_sound_trigger_device* stdev)
     while(!input_done) {
         if (fgets(buffer, PARSE_BUF_LEN, input_fp) != NULL) {
             pthread_mutex_lock(&stdev->lock);
-            char* command = strtok(buffer, " \r\n");
+            char* save_ptr = NULL;
+            char* command = strtok_r(buffer, " \r\n", &save_ptr);
             if (command == NULL) {
                 write_bad_command_error(conn_socket, command);
             } else if (strncmp(command, COMMAND_LS, 2) == 0) {

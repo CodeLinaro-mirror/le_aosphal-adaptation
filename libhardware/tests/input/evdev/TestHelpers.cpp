@@ -39,11 +39,11 @@ TempFile::TempFile(const char* path) {
     if (needTrailingSlash) nameLen++;
 
     mName = new char[nameLen];
-    strcpy(mName, path);
+    strlcpy(mName, path, strlen(path));
     if (needTrailingSlash) {
-        strcat(mName, "/");
+        strlcat(mName, "/", 1);
     }
-    strcat(mName, "XXXXXX");
+    strlcat(mName, "XXXXXX", 6);
     mName = mktemp(mName);
     LOG_FATAL_IF(mName == nullptr, "could not create temp filename %s. errno=%d", mName, errno);
 
@@ -66,7 +66,7 @@ TempFile::~TempFile() {
 
 TempDir::TempDir() {
     mName = new char[sizeof(kTmpDirTemplate)];
-    strcpy(mName, kTmpDirTemplate);
+    strlcpy(mName, kTmpDirTemplate, strlen(kTmpDirTemplate));
     mName = mkdtemp(mName);
     LOG_FATAL_IF(mName == nullptr, "could not allocate tempdir %s", mName);
 }
