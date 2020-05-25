@@ -18,7 +18,9 @@
 #ifndef ANDROID_GRALLOC_INTERFACE_H
 #define ANDROID_GRALLOC_INTERFACE_H
 
+#include <system/window.h>
 #include <system/graphics.h>
+#include "graphics-base-v1.2.h"
 #include <hardware/hardware.h>
 
 #include <stdint.h>

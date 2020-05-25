@@ -26,16 +26,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define LOG_TAG "HAL"
 #include <log/log.h>
 
-#if !defined(__ANDROID_RECOVERY__)
-#include <vndksupport/linker.h>
-#endif
-
 /** Base path of the hal modules */
-#if defined(__LP64__)
+#ifdef HAL_LIBRARY_PATH
+#define HAL_PATH_APPEND(path, extn) (path extn)
+#define HAL_LIBRARY_PATH1 HAL_LIBRARY_PATH
+#define HAL_LIBRARY_PATH2 HAL_PATH_APPEND(HAL_LIBRARY_PATH1, "/hw")
+#define HAL_LIBRARY_PATH3 HAL_LIBRARY_PATH
+#elif defined(__LP64__)
 #define HAL_LIBRARY_PATH1 "/system/lib64/hw"
 #define HAL_LIBRARY_PATH2 "/vendor/lib64/hw"
 #define HAL_LIBRARY_PATH3 "/odm/lib64/hw"
@@ -79,30 +81,13 @@ static int load(const char *id,
     int status = -EINVAL;
     void *handle = NULL;
     struct hw_module_t *hmi = NULL;
-#ifdef __ANDROID_VNDK__
-    const bool try_system = false;
-#else
-    const bool try_system = true;
-#endif
 
     /*
      * load the symbols resolving undefined symbols before
      * dlopen returns. Since RTLD_GLOBAL is not or'd in with
      * RTLD_NOW the external symbols will not be global
      */
-    if (try_system &&
-        strncmp(path, HAL_LIBRARY_PATH1, strlen(HAL_LIBRARY_PATH1)) == 0) {
-        /* If the library is in system partition, no need to check
-         * sphal namespace. Open it with dlopen.
-         */
-        handle = dlopen(path, RTLD_NOW);
-    } else {
-#if defined(__ANDROID_RECOVERY__)
-        handle = dlopen(path, RTLD_NOW);
-#else
-        handle = android_load_sphal_library(path, RTLD_NOW);
-#endif
-    }
+    handle = dlopen(path, RTLD_NOW);
     if (handle == NULL) {
         char const *err_str = dlerror();
         ALOGE("load: module=%s\n%s", path, err_str?err_str:"unknown");
@@ -184,12 +169,10 @@ static int hw_module_exists(char *path, size_t path_len, const char *name,
     if (path_in_path(path, HAL_LIBRARY_PATH2) && access(path, R_OK) == 0)
         return 0;
 
-#ifndef __ANDROID_VNDK__
     snprintf(path, path_len, "%s/%s.%s.so",
              HAL_LIBRARY_PATH1, name, subname);
     if (path_in_path(path, HAL_LIBRARY_PATH1) && access(path, R_OK) == 0)
         return 0;
-#endif
 
     return -ENOENT;
 }
