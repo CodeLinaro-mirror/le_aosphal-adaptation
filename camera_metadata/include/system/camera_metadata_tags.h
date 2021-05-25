@@ -353,6 +353,7 @@ typedef enum camera_metadata_tag {
     ANDROID_SENSOR_INFO_LENS_SHADING_APPLIED,         // enum         | public       | HIDL v3.2
     ANDROID_SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE,
                                                       // int32[]      | public       | HIDL v3.2
+    ANDROID_SENSOR_INFO_YUV_CHECK_LINK_STATUS,        // int32[]      | public       | HIDL v3.2
     ANDROID_SENSOR_INFO_END,
 
     ANDROID_SHADING_MODE =                            // enum         | public       | HIDL v3.2
@@ -821,6 +822,7 @@ typedef enum camera_metadata_enum_android_scaler_available_formats {
     ANDROID_SCALER_AVAILABLE_FORMATS_RAW_OPAQUE                      = 0x24, // HIDL v3.2
     ANDROID_SCALER_AVAILABLE_FORMATS_YV12                            = 0x32315659, // HIDL v3.2
     ANDROID_SCALER_AVAILABLE_FORMATS_YCrCb_420_SP                    = 0x11, // HIDL v3.2
+    ANDROID_SCALER_AVAILABLE_FORMATS_UYVY_422                        = 0x14, //
     ANDROID_SCALER_AVAILABLE_FORMATS_IMPLEMENTATION_DEFINED          = 0x22, // HIDL v3.2
     ANDROID_SCALER_AVAILABLE_FORMATS_YCbCr_420_888                   = 0x23, // HIDL v3.2
     ANDROID_SCALER_AVAILABLE_FORMATS_BLOB                            = 0x21, // HIDL v3.2
