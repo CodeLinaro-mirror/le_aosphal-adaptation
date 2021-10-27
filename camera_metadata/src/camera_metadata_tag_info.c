@@ -2060,6 +2060,10 @@ int camera_metadata_enum_snprint(uint32_t tag,
                     msg = "YCbCr_420_888";
                     ret = 0;
                     break;
+                case ANDROID_SCALER_AVAILABLE_FORMATS_UYVY_422:
+                    msg = "YUY2";
+                    ret = 0;
+                    break;
                 case ANDROID_SCALER_AVAILABLE_FORMATS_BLOB:
                     msg = "BLOB";
                     ret = 0;
