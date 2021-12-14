@@ -353,6 +353,7 @@ typedef enum camera_metadata_tag {
     ANDROID_SENSOR_INFO_LENS_SHADING_APPLIED,         // enum         | public       | HIDL v3.2
     ANDROID_SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE,
                                                       // int32[]      | public       | HIDL v3.2
+    ANDROID_SENSOR_INFO_YUV_CHECK_LINK_STATUS,        // int32[]      | public       | HIDL v3.2
     ANDROID_SENSOR_INFO_END,
 
     ANDROID_SHADING_MODE =                            // enum         | public       | HIDL v3.2

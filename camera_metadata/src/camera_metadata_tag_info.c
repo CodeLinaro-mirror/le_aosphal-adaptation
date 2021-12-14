@@ -566,6 +566,8 @@ static tag_info_t android_sensor_info[ANDROID_SENSOR_INFO_END -
     { "lensShadingApplied",            TYPE_BYTE   },
     [ ANDROID_SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE - ANDROID_SENSOR_INFO_START ] =
     { "preCorrectionActiveArraySize",  TYPE_INT32  },
+    [ ANDROID_SENSOR_INFO_YUV_CHECK_LINK_STATUS - ANDROID_SENSOR_INFO_START ] =
+    { "YUVLinkStatus",  TYPE_INT32  },
 };
 
 static tag_info_t android_shading[ANDROID_SHADING_END -
@@ -2481,6 +2483,10 @@ int camera_metadata_enum_snprint(uint32_t tag,
             break;
         }
         case ANDROID_SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE: {
+            break;
+        }
+
+        case ANDROID_SENSOR_INFO_YUV_CHECK_LINK_STATUS: {
             break;
         }
 
