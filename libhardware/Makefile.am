@@ -1,0 +1,59 @@
+
+lib_LTLIBRARIES = libhardware.la
+
+libhardware_la_SOURCES = hardware.c
+libhardware_la_CFLAGS  = -I$(top_srcdir)/include
+if HAL_PATH_SPECIFIED
+libhardware_la_CFLAGS += -DHAL_LIBRARY_PATH=\"@HAL_PATH@\"
+endif
+libhardware_la_LDFLAGS = -lcutils -llog -ldl
+
+# Export headers
+h_sources  = $(top_srcdir)/include/hardware/hardware.h
+h_sources += $(top_srcdir)/include/hardware/power.h
+h_sources += $(top_srcdir)/include/hardware/gr_priv_handle.h
+
+if HAS_AUDIO
+h_sources += $(top_srcdir)/include/hardware/audio.h
+h_sources += $(top_srcdir)/include/hardware/sound_trigger.h
+h_sources += $(top_srcdir)/include/hardware/audio_alsaops.h
+h_sources += $(top_srcdir)/include/hardware/audio_effect.h
+h_sources += $(top_srcdir)/include/hardware/audio_policy.h
+endif
+
+if HAS_CAMERA
+h_sources += $(top_srcdir)/include/hardware/camera.h
+h_sources += $(top_srcdir)/include/hardware/camera3.h
+h_sources += $(top_srcdir)/include/hardware/camera_common.h
+endif
+
+if HAS_DISPLAY
+h_sources += $(top_srcdir)/include/hardware/hwcomposer.h
+h_sources += $(top_srcdir)/include/hardware/hwcomposer_defs.h
+h_sources += $(top_srcdir)/include/hardware/graphics-base-v1.2.h
+h_sources += $(top_srcdir)/include/hardware/gralloc1.h
+h_sources += $(top_srcdir)/include/hardware/gralloc.h
+h_sources += $(top_srcdir)/include/hardware/fb.h
+endif
+
+if HAS_LOCATION
+h_sources += $(top_srcdir)/include/hardware/gps.h
+h_sources += $(top_srcdir)/include/hardware/fused_location.h
+endif
+
+if HAS_SENSORS
+h_sources += $(top_srcdir)/include/hardware/sensors-base.h
+h_sources += $(top_srcdir)/include/hardware/sensors.h
+endif
+
+gralloc_h_sources = modules/gralloc/gralloc_priv.h
+
+libhardware_includedir=$(includedir)/hardware/
+libhardware_include_HEADERS = $(h_sources)
+
+libhardware_gralloc_includedir=$(includedir)/libhardware/
+libhardware_gralloc_include_HEADERS = $(gralloc_h_sources)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = hardware.pc
+EXTRA_DIST = $(pkgconfig_DATA)
