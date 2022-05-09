@@ -28,3 +28,7 @@ camera_metadata_system_includedir=$(includedir)/system
 camera_metadata_system_include_HEADERS := include/system/camera_metadata.h
 camera_metadata_system_include_HEADERS += include/system/camera_metadata_tags.h
 camera_metadata_system_include_HEADERS += include/system/camera_vendor_tags.h
+
+pkgconfigdir   = $(libdir)/pkgconfig
+pkgconfig_DATA = libcamera_metadata.pc
+EXTRA_DIST     = $(pkgconfig_DATA)
