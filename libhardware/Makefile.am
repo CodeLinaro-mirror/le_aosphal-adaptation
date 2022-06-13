@@ -34,6 +34,7 @@ h_sources += $(top_srcdir)/include/hardware/graphics-base-v1.2.h
 h_sources += $(top_srcdir)/include/hardware/gralloc1.h
 h_sources += $(top_srcdir)/include/hardware/gralloc.h
 h_sources += $(top_srcdir)/include/hardware/fb.h
+h_sources += $(top_srcdir)/include/hardware/hdmi_cec.h
 endif
 
 if HAS_LOCATION
