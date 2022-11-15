@@ -2703,6 +2703,17 @@ typedef struct camera3_capture_result {
       */
      const camera_metadata_t **physcam_metadata;
 
+     /**
+      * Add timestamp when HAL buffer result return to framework from
+      * camera HAL in camera3_capture_result_t for this LE_CAMERA3_HAL_API == 1
+      * API version.
+      * This timestamp type is CLOCK_BOOTTIME.
+      * And this value should be set in camera HAL.
+      */
+#if defined(LE_CAMERA3_HAL_API) && (LE_CAMERA3_HAL_API == 1)
+     uint64_t timestamp;
+#endif
+
 } camera3_capture_result_t;
 
 /**********************************************************************
