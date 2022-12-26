@@ -38,6 +38,7 @@
 #include <utils/String8.h>
 #include <utils/RefBase.h>
 #include <system/camera_vendor_tags.h>
+#include <binder/Parcel.h>
 
 #include <stdint.h>
 #include <unordered_map>
@@ -170,6 +171,30 @@ class VendorTagDescriptor :
      * Clears the global vendor tag descriptor used by this process.
      */
     static void clearGlobalVendorTagDescriptor();
+
+    /**
+     * Create a VendorTagDescriptor object from the given parcel.
+     *
+     * Returns OK on success, or a negative error code.
+     */
+    static status_t createFromParcel(const android::Parcel* parcel,
+            /*out*/
+            sp<VendorTagDescriptor>& descriptor);
+
+    /**
+     * Read values VendorTagDescriptor object from the given parcel.
+     *
+     * Returns OK on success, or a negative error code.
+     */
+    virtual status_t readFromParcel(const android::Parcel* parcel);
+    /**
+     * Write the VendorTagDescriptor object into the given parcel.
+     *
+     * Returns OK on success, or a negative error code.
+     */
+    status_t writeToParcel(
+            /*out*/
+            android::Parcel* parcel) const;
 
 };
 

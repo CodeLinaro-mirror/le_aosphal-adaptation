@@ -37,6 +37,7 @@
 
 #include <utils/String8.h>
 #include <utils/Vector.h>
+#include <binder/Parcel.h>
 
 namespace android {
 namespace hardware {
@@ -205,6 +206,31 @@ class CameraMetadata {
      * each line of output.
      */
     void dump(int fd, int verbosity = 1, int indentation = 0) const;
+
+    /**
+     * Serialization over Binder
+     */
+
+    // Metadata object is unchanged when reading from parcel fails.
+    status_t readFromParcel(android::Parcel *parcel);
+    status_t writeToParcel(android::Parcel *parcel) const;
+
+    /**
+      * Caller becomes the owner of the new metadata
+      * 'const Parcel' doesnt prevent us from calling the read functions.
+      *  which is interesting since it changes the internal state
+      *
+      * NULL can be returned when no metadata was sent, OR if there was an issue
+      * unpacking the serialized data (i.e. bad parcel or invalid structure).
+      */
+    static status_t readFromParcel(const android::Parcel &parcel,
+                                   camera_metadata_t** out);
+    /**
+      * Caller retains ownership of metadata
+      * - Write 2 (int32 + blob) args in the current position
+      */
+    static status_t writeToParcel(android::Parcel &parcel,
+                                  const camera_metadata_t* metadata);
 
     /**
      * Find tag id for a given tag name, also checking vendor tags if available.
