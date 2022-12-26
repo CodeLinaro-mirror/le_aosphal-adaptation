@@ -544,6 +544,268 @@ int vendor_tag_descriptor_cache_get_tag_type(uint32_t tag, metadata_vendor_id_t 
     return sGlobalVendorTagDescriptorCache->getTagType(tag, id);
 }
 
+status_t VendorTagDescriptor::createFromParcel(const Parcel* parcel,
+            /*out*/
+            sp<VendorTagDescriptor>& descriptor) {
+    status_t res = OK;
+    if (parcel == NULL) {
+        ALOGE("%s: parcel argument was NULL.", __FUNCTION__);
+        return BAD_VALUE;
+    }
+
+    int32_t tagCount = 0;
+    if ((res = parcel->readInt32(&tagCount)) != OK) {
+        ALOGE("%s: could not read tag count from parcel", __FUNCTION__);
+        return res;
+    }
+
+    if (tagCount < 0 || tagCount > INT32_MAX) {
+        ALOGE("%s: tag count %d from vendor ops is invalid.", __FUNCTION__, tagCount);
+        return BAD_VALUE;
+    }
+
+    sp<VendorTagDescriptor> desc = new VendorTagDescriptor();
+    desc->mTagCount = tagCount;
+
+    uint32_t tag, sectionIndex;
+    uint32_t maxSectionIndex = 0;
+    int32_t tagType;
+    Vector<uint32_t> allTags;
+    for (int32_t i = 0; i < tagCount; ++i) {
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&tag))) != OK) {
+            ALOGE("%s: could not read tag id from parcel for index %d", __FUNCTION__, i);
+            break;
+        }
+        if (tag < CAMERA_METADATA_VENDOR_TAG_BOUNDARY) {
+            ALOGE("%s: vendor tag %d not in vendor tag section.", __FUNCTION__, tag);
+            res = BAD_VALUE;
+            break;
+        }
+        if ((res = parcel->readInt32(&tagType)) != OK) {
+            ALOGE("%s: could not read tag type from parcel for tag %d", __FUNCTION__, tag);
+            break;
+        }
+        if (tagType < 0 || tagType >= NUM_TYPES) {
+            ALOGE("%s: tag type %d from vendor ops does not exist.", __FUNCTION__, tagType);
+            res = BAD_VALUE;
+            break;
+        }
+        String8 tagName = parcel->readString8();
+        if (tagName.isEmpty()) {
+            ALOGE("%s: parcel tag name was NULL for tag %d.", __FUNCTION__, tag);
+            res = NOT_ENOUGH_DATA;
+            break;
+        }
+
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&sectionIndex))) != OK) {
+            ALOGE("%s: could not read section index for tag %d.", __FUNCTION__, tag);
+            break;
+        }
+
+        maxSectionIndex = (maxSectionIndex >= sectionIndex) ? maxSectionIndex : sectionIndex;
+
+        allTags.add(tag);
+        desc->mTagToNameMap.add(tag, tagName);
+        desc->mTagToSectionMap.add(tag, sectionIndex);
+//        desc->mTagToTypeMap.add(tag, tagType);
+        desc->mTagToTypeMap.insert(std::make_pair(tag, tagType));
+
+    }
+
+    if (res != OK) {
+        return res;
+    }
+
+    size_t sectionCount = 0;
+    if (tagCount > 0) {
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&sectionCount))) != OK) {
+            ALOGE("%s: could not read section count for.", __FUNCTION__);
+            return res;
+        }
+        if (sectionCount < (maxSectionIndex + 1)) {
+            ALOGE("%s: Incorrect number of sections defined, received %zu, needs %d.",
+                    __FUNCTION__, sectionCount, (maxSectionIndex + 1));
+            return BAD_VALUE;
+        }
+        LOG_ALWAYS_FATAL_IF(desc->mSections.setCapacity(sectionCount) <= 0,
+                "Vector capacity must be positive");
+        for (size_t i = 0; i < sectionCount; ++i) {
+            String8 sectionName = parcel->readString8();
+            if (sectionName.isEmpty()) {
+                ALOGE("%s: parcel section name was NULL for section %zu.",
+                      __FUNCTION__, i);
+                return NOT_ENOUGH_DATA;
+            }
+            desc->mSections.add(sectionName);
+        }
+    }
+
+    LOG_ALWAYS_FATAL_IF(static_cast<size_t>(tagCount) != allTags.size(),
+                        "tagCount must be the same as allTags size");
+    // Set up reverse mapping
+    for (size_t i = 0; i < static_cast<size_t>(tagCount); ++i) {
+        uint32_t tag = allTags[i];
+        String8 sectionString = desc->mSections[desc->mTagToSectionMap.valueFor(tag)];
+
+        ssize_t reverseIndex = -1;
+        if ((reverseIndex = desc->mReverseMapping.indexOfKey(sectionString)) < 0) {
+            KeyedVector<String8, uint32_t>* nameMapper = new KeyedVector<String8, uint32_t>();
+            reverseIndex = desc->mReverseMapping.add(sectionString, nameMapper);
+        }
+        desc->mReverseMapping[reverseIndex]->add(desc->mTagToNameMap.valueFor(tag), tag);
+    }
+
+    descriptor = desc;
+    return res;
+}
+
+status_t VendorTagDescriptor::readFromParcel(const Parcel* parcel) {
+    status_t res = OK;
+    if (parcel == NULL) {
+        ALOGE("%s: parcel argument was NULL.", __FUNCTION__);
+        return BAD_VALUE;
+    }
+
+    int32_t tagCount = 0;
+    if ((res = parcel->readInt32(&tagCount)) != OK) {
+        ALOGE("%s: could not read tag count from parcel", __FUNCTION__);
+        return res;
+    }
+
+    if (tagCount < 0 || tagCount > INT32_MAX) {
+        ALOGE("%s: tag count %d from vendor ops is invalid.", __FUNCTION__, tagCount);
+        return BAD_VALUE;
+    }
+
+    mTagCount = tagCount;
+
+    uint32_t tag, sectionIndex;
+    uint32_t maxSectionIndex = 0;
+    int32_t tagType;
+    Vector<uint32_t> allTags;
+    for (int32_t i = 0; i < tagCount; ++i) {
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&tag))) != OK) {
+            ALOGE("%s: could not read tag id from parcel for index %d", __FUNCTION__, i);
+            break;
+        }
+        if (tag < CAMERA_METADATA_VENDOR_TAG_BOUNDARY) {
+            ALOGE("%s: vendor tag %d not in vendor tag section.", __FUNCTION__, tag);
+            res = BAD_VALUE;
+            break;
+        }
+        if ((res = parcel->readInt32(&tagType)) != OK) {
+            ALOGE("%s: could not read tag type from parcel for tag %d", __FUNCTION__, tag);
+            break;
+        }
+        if (tagType < 0 || tagType >= NUM_TYPES) {
+            ALOGE("%s: tag type %d from vendor ops does not exist.", __FUNCTION__, tagType);
+            res = BAD_VALUE;
+            break;
+        }
+        String8 tagName = parcel->readString8();
+        if (tagName.isEmpty()) {
+            ALOGE("%s: parcel tag name was NULL for tag %d.", __FUNCTION__, tag);
+            res = NOT_ENOUGH_DATA;
+            break;
+        }
+
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&sectionIndex))) != OK) {
+            ALOGE("%s: could not read section index for tag %d.", __FUNCTION__, tag);
+            break;
+        }
+
+        maxSectionIndex = (maxSectionIndex >= sectionIndex) ? maxSectionIndex : sectionIndex;
+
+        allTags.add(tag);
+        mTagToNameMap.add(tag, tagName);
+        mTagToSectionMap.add(tag, sectionIndex);
+//        mTagToTypeMap.add(tag, tagType);
+        mTagToTypeMap.insert(std::make_pair(tag, tagType));
+    }
+
+    if (res != OK) {
+        return res;
+    }
+
+    size_t sectionCount = 0;
+    if (tagCount > 0) {
+        if ((res = parcel->readInt32(reinterpret_cast<int32_t*>(&sectionCount))) != OK) {
+            ALOGE("%s: could not read section count for.", __FUNCTION__);
+            return res;
+        }
+        if (sectionCount < (maxSectionIndex + 1)) {
+            ALOGE("%s: Incorrect number of sections defined, received %zu, needs %d.",
+                    __FUNCTION__, sectionCount, (maxSectionIndex + 1));
+            return BAD_VALUE;
+        }
+        LOG_ALWAYS_FATAL_IF(mSections.setCapacity(sectionCount) <= 0,
+                "Vector capacity must be positive");
+        for (size_t i = 0; i < sectionCount; ++i) {
+            String8 sectionName = parcel->readString8();
+            if (sectionName.isEmpty()) {
+                ALOGE("%s: parcel section name was NULL for section %zu.",
+                      __FUNCTION__, i);
+                return NOT_ENOUGH_DATA;
+            }
+            mSections.add(sectionName);
+        }
+    }
+
+    LOG_ALWAYS_FATAL_IF(static_cast<size_t>(tagCount) != allTags.size(),
+                        "tagCount must be the same as allTags size");
+    // Set up reverse mapping
+    for (size_t i = 0; i < static_cast<size_t>(tagCount); ++i) {
+        uint32_t tag = allTags[i];
+        const String8& sectionString = mSections[mTagToSectionMap.valueFor(tag)];
+
+        ssize_t reverseIndex = -1;
+        if ((reverseIndex = mReverseMapping.indexOfKey(sectionString)) < 0) {
+            KeyedVector<String8, uint32_t>* nameMapper = new KeyedVector<String8, uint32_t>();
+            reverseIndex = mReverseMapping.add(sectionString, nameMapper);
+        }
+        mReverseMapping[reverseIndex]->add(mTagToNameMap.valueFor(tag), tag);
+    }
+
+    return res;
+}
+
+status_t VendorTagDescriptor::writeToParcel(Parcel* parcel) const {
+    status_t res = OK;
+    if (parcel == NULL) {
+        ALOGE("%s: parcel argument was NULL.", __FUNCTION__);
+        return BAD_VALUE;
+    }
+
+    if ((res = parcel->writeInt32(mTagCount)) != OK) {
+        return res;
+    }
+
+    size_t size = mTagToNameMap.size();
+    uint32_t tag, sectionIndex;
+    int32_t tagType;
+    for (size_t i = 0; i < size; ++i) {
+        tag = mTagToNameMap.keyAt(i);
+        String8 tagName = mTagToNameMap[i];
+        sectionIndex = mTagToSectionMap.valueFor(tag);
+//        tagType = mTagToTypeMap.valueFor(tag);
+        tagType = mTagToTypeMap.at(tag);
+        if ((res = parcel->writeInt32(tag)) != OK) break;
+        if ((res = parcel->writeInt32(tagType)) != OK) break;
+        if ((res = parcel->writeString8(tagName)) != OK) break;
+        if ((res = parcel->writeInt32(sectionIndex)) != OK) break;
+    }
+
+    size_t numSections = mSections.size();
+    if (numSections > 0) {
+        if ((res = parcel->writeInt32(numSections)) != OK) return res;
+        for (size_t i = 0; i < numSections; ++i) {
+            if ((res = parcel->writeString8(mSections[i])) != OK) return res;
+        }
+    }
+
+    return res;
+}
+
 } /* extern "C" */
 
 } // namespace helper
