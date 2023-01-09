@@ -26,8 +26,12 @@
 #include <cutils/native_handle.h>
 #include <system/camera.h>
 #include <system/camera_vendor_tags.h>
+#if defined(LE_CAMERA)
+#include <hardware/camera_hardware.h>
+#else
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
+#endif
 
 __BEGIN_DECLS
 
@@ -167,10 +171,11 @@ __BEGIN_DECLS
 #define CAMERA_DEVICE_API_VERSION_3_4 HARDWARE_DEVICE_API_VERSION(3, 4)
 #define CAMERA_DEVICE_API_VERSION_3_5 HARDWARE_DEVICE_API_VERSION(3, 5)
 #define CAMERA_DEVICE_API_VERSION_3_6 HARDWARE_DEVICE_API_VERSION(3, 6)
+#define CAMERA_DEVICE_API_VERSION_3_7 HARDWARE_DEVICE_API_VERSION(3, 7)
 
 // Device version 3.5 is current, older HAL camera device versions are not
 // recommended for new devices.
-#define CAMERA_DEVICE_API_VERSION_CURRENT CAMERA_DEVICE_API_VERSION_3_5
+#define CAMERA_DEVICE_API_VERSION_CURRENT CAMERA_DEVICE_API_VERSION_3_7
 
 /**
  * Defined in /system/media/camera/include/system/camera_metadata.h
@@ -772,6 +777,97 @@ typedef struct camera_stream {
      */
     const char* physical_camera_id;
 
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     * The surface group id used for multi-resolution output streams.
+     *
+     * This works simliar to the surfaceGroupId of OutputConfiguration in the
+     * public API, with the exception that this is for multi-resolution image
+     * reader and is used by the camera HAL to choose a target stream within
+     * the same group to which images are written. All streams in the same group
+     * will have the same image format, data space, and usage flag.
+     *
+     * The framework must only call processCaptureRequest on at most one of the
+     * streams within a surface group. Depending on current active physical
+     * camera backing the logical multi-camera, or the pixel mode the camera is
+     * running in, the HAL can choose to request and return a buffer from any
+     * stream within the same group. -1 means that this stream is an input
+     * stream, or is an output stream which doesn't belong to any group.
+     *
+     * Streams with the same non-negative group id must have the same format and
+     * usage flag.
+     */
+     int group_id;
+
+
+    /**
+     * >= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *  Total number of pixel modes used by this stream
+     */
+     uint32_t num_sensor_pixel_modes_used;
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     *  The sensor pixel modes used by this stream. This can assist the camera
+     *  HAL in decision making about stream combination support.
+     *  If this is empty, the HAL must assume that this stream will only be used
+     *  with ANDROID_SENSOR_PIXEL_MODE set to ANDROID_SENSOR_PIXEL_MODE_DEFAULT.
+     */
+    int **sensor_pixel_modes;
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     *
+     * If an input stream is configured, whether the input stream is expected to
+     * receive variable resolution images.
+     *
+     * This flag can only be set to true if the camera device supports
+     * multi-resolution input streams by advertising input stream configurations in
+     * physicalCameraMultiResolutionStreamConfigurations in its physical cameras'
+     * characteristics.
+     *
+     * When this flag is set to true, the input stream's width and height can be
+     * any one of the supported multi-resolution input stream sizes.
+     */
+    uint32_t multi_resolution_input_image;
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 32) //Android-T or better
+    /**
+     *
+     * <= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_8:
+     * The stream use case is an enum specifying the use case of a
+     * particular stream. Examples of stream use cases are VIEWFINDER,
+     * STILL_CAPTURE, VIDEO_RECORD, VIEWFINDER_VIDEO_STILL, VIDEO_CALL, etc.
+     * Two of the common scenarios where stream use case is used are:
+     * - STILL_CAPTURE use case for YUV stream
+     * High quality YUV stream with the same quality characteristics as JPEG.
+     * - Single stream used for VIEWFINDER, RECORDING, and optionally STILL CAPTURE.
+     * Some social media applications use the same GPU surface for viewfinder,
+     * video recording, as well as still capture. This use case enables camera
+     * devices to optimize for such scenarios
+     *
+     */
+    uint64_t stream_use_case;
+#endif
+    /* reserved for future use */
+    void *reserved[5];
+
 } camera_stream_t;
 
 /**
@@ -808,12 +904,40 @@ typedef struct camera_stream_combination {
 } camera_stream_combination_t;
 
 /**
+ * cameraid_stream_combination:
+ *
+ * A structure of stream definitions, used by isConcurrentStreamCombinationSupported(). This
+ * structure defines all the input & output streams for specific camera use case. Since this
+ * is used for concurrent cameras, framework camera ID info is added to the existing
+ * camera_stream_combination_t structure.
+ */
+typedef struct cameraid_stream_combination {
+    uint32_t                        fwkCameraId;    ///< Framework camera Id for a given stream combination
+    camera_stream_combination_t*    streamConfig;   ///< Pointer to a given camera stream combination
+} cameraid_stream_combination_t;
+
+
+const uint32_t MaxConcurrentCameraSupported = 2;
+
+/**
+ * concurrent_camera_combination_t:
+ *
+ * A structure to fill up concurrent camera combination list. This information is
+ * used by getConcurrentStreamingCameraIds() API to send out the list of entries to
+ * camera framework.
+ */
+ typedef struct concurrent_camera_combination {
+    uint32_t    numCameras;                                       ///< No of concurrent cameras supported in each combination
+    uint32_t    concurrentCamArray[MaxConcurrentCameraSupported]; ///< Array of concurrent camera combinations
+} concurrent_camera_combination_t;
+
+/**
  * device_state_t:
  *
  * Possible physical states of the overall device, for use with
  * notify_device_state_change.
  */
-typedef enum device_state {
+typedef enum device_state : long long {
     /**
      * The device is in its normal physical configuration. This is the default if the
      * device does not support multiple different states.
@@ -1083,6 +1207,57 @@ typedef struct camera_module {
     int (*set_torch_mode)(const char* camera_id, bool enabled);
 
     /**
+     * turn_on_torch_with_strength_level:
+     *
+     * Change the brightness level of the flash unit associated with this camera device
+     * and set it to value in torchStrength. This function also turns ON the torch
+     * with specified torchStrength if the torch is OFF.
+     *
+     * The torchStrength value must be within the valid range i.e. >=1 and
+     * <= FLASH_INFO_STRENGTH_MAXIMUM_LEVEL. Whenever the torch is turned OFF,
+     * the brightness level will reset to FLASH_INFO_STRENGTH_DEFAULT_LEVEL.
+     * When the client calls setTorchMode(ON) after turnOnTorchWithStrengthLevel(N),
+     * the flash unit will have brightness level equal to N. This level does not
+     * represent the real brightness units. It is linear in nature i.e. flashlight
+     * at level 10 is twice as bright as at level 5.
+     *
+     * Return values:
+     *
+     * 0:           On a successful operation.
+     *
+     * -ENOSYS:     The camera device does not support this operation. It is
+     *              returned if and only if android.flash.info.available is
+     *              false.
+     *
+     * -EBUSY:      The camera device is already in use.
+     *
+     * -EINVAL:     camera_id or torchStrength is invalid.
+     *
+     */
+    int (*turn_on_torch_with_strength_level)(const char* camera_id, int32_t torchStrength);
+
+    /**
+     * get_torch_strength_level:
+     *
+     * Get current torch strength level.
+     * If the device supports torch strength control, when the torch is OFF the
+     * strength level will reset to default level, so the return
+     * value in this case will be equal to FLASH_INFO_STRENGTH_DEFAULT_LEVEL.
+     *
+     * Return values:
+     *
+     * 0:           On a successful operation.
+     *
+     * -ENOSYS:     The camera device does not support this operation. It is
+     *              returned if and only if android.flash.info.available is
+     *              false.
+     *
+     * -EINVAL:     camera_id is invalid.
+     *
+     */
+    int (*get_torch_strength_level)(const char* camera_id, int32_t* strengthLevel);
+
+    /**
      * init:
      *
      * This method is called by the camera service before any other methods
@@ -1209,8 +1384,98 @@ typedef struct camera_module {
      */
     void (*notify_device_state_change)(uint64_t deviceState);
 
+    /**
+     * get_camera_device_version:
+     *
+     * Return the device version for a given camera device. This value may not change for a camera
+     * device. The version returned here must be the same as the one from get_camera_info.
+     *
+     * Return values:
+     *
+     * 0:           On a successful operation
+     *
+     * -ENODEV:     The information cannot be provided due to an internal
+     *              error.
+     *
+     * -EINVAL:     The input arguments are invalid, i.e. the id is invalid,
+     *              and/or the module is invalid.
+     *
+     * Version information (based on camera_module_t.common.module_api_version):
+     *
+     * CAMERA_MODULE_API_VERSION_2_5 or higher:
+     *
+     *   When a camera is disconnected, its camera id becomes invalid. Calling this
+     *   this method with this invalid camera id will get -EINVAL and NULL camera
+     *   static metadata (camera_info.static_camera_characteristics).
+     */
+    int (*get_camera_device_version)(int camera_id, uint32_t *version);
+
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 31) //Android-S or better
+    /**
+     * get_concurrent_streaming_camera_ids:
+     *
+     * Check for device support of specific camera stream combination concurrently.
+     *
+     * Get a vector of combinations of camera device ids that are able to
+     * configure streams concurrently. Each camera device advertised in a
+     * combination MUST at the very least support 720p YUV streams while
+     * streaming concurrently with the other camera ids in the combination.
+     *
+     * Caller needs to deallocate "ppConcCamArray" using delete [].
+     *
+     * Return values:
+     *
+     * 0:           In case if at least one stream combination is supported.
+     *
+     * -EINVAL:     In case the stream combination is not supported.
+     *
+     * -ENOSYS:     In case stream combination query is not supported.
+     *
+     * Version information (based on camera_module_t.common.module_api_version):
+     *
+     * CAMERA_MODULE_API_VERSION_1_x/2_0/2_1/2_2/2_3/2_4/2_5:
+     *   Not provided by HAL module. Framework will not call this function.
+     *
+     * CAMERA_MODULE_API_VERSION_2_6 or higher:
+     *   Valid to be called by the framework.
+     */
+    int (*get_concurrent_streaming_camera_ids)(
+        uint32_t*                          pConcCamArrayLength,
+        concurrent_camera_combination_t**  ppConcCamArray);
+
+    /**
+     * is_concurrent_stream_combination_supported:
+     *
+     * Check for device support of specific camera stream combination concurrently.
+     *
+     * Get a vector of combinations of camera device ids that are able to
+     * configure streams concurrently. Each camera device advertised in a
+     * combination MUST at the very least support 720p YUV streams while
+     * streaming concurrently with the other camera ids in the combination.
+     *
+     * Return values:
+     *
+     * 0:           In case if at least one stream combination is supported.
+     *
+     * -EINVAL:     In case the stream combination is not supported.
+     *
+     * -ENOSYS:     In case stream combination query is not supported.
+     *
+     * Version information (based on camera_module_t.common.module_api_version):
+     *
+     * CAMERA_MODULE_API_VERSION_1_x/2_0/2_1/2_2/2_3/2_4/2_5:
+     *   Not provided by HAL module. Framework will not call this function.
+     *
+     * CAMERA_MODULE_API_VERSION_2_6 or higher:
+     *   Valid to be called by the framework.
+     */
+    int (*is_concurrent_stream_combination_supported)(
+        uint32_t                              numCombinations,
+        const cameraid_stream_combination_t*  pCameraIdComb);
+#endif // (CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 31)
+
     /* reserved for future use */
-    void* reserved[2];
+    void *reserved[1];
 } camera_module_t;
 
 __END_DECLS

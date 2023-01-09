@@ -14,15 +14,36 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_CLIENT_CAMERA2_CAMERAMETADATA_CPP
-#define ANDROID_CLIENT_CAMERA2_CAMERAMETADATA_CPP
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef CAMERA_COMMON_1_0_CAMERAMETADATA_H
+#define CAMERA_COMMON_1_0_CAMERAMETADATA_H
 
 #include "system/camera_metadata.h"
+
 #include <utils/String8.h>
 #include <utils/Vector.h>
 
 namespace android {
-class Parcel;
+namespace hardware {
+namespace camera {
+namespace common {
+namespace V1_0 {
+namespace helper {
 
 class VendorTagDescriptor;
 
@@ -66,7 +87,7 @@ class CameraMetadata {
      * from getAndLock must be provided to guarantee that the right object is
      * being unlocked.
      */
-    status_t unlock(const camera_metadata_t *buffer);
+    status_t unlock(const camera_metadata_t *buffer) const;
 
     /**
      * Release a raw metadata buffer to the caller. After this call,
@@ -139,6 +160,8 @@ class CameraMetadata {
             const camera_metadata_rational_t *data, size_t data_count);
     status_t update(uint32_t tag,
             const String8 &string);
+    status_t update(const camera_metadata_ro_entry &entry);
+
 
     template<typename T>
     status_t update(uint32_t tag, Vector<T> data) {
@@ -184,31 +207,6 @@ class CameraMetadata {
     void dump(int fd, int verbosity = 1, int indentation = 0) const;
 
     /**
-     * Serialization over Binder
-     */
-
-    // Metadata object is unchanged when reading from parcel fails.
-    status_t readFromParcel(Parcel *parcel);
-    status_t writeToParcel(Parcel *parcel) const;
-
-    /**
-      * Caller becomes the owner of the new metadata
-      * 'const Parcel' doesnt prevent us from calling the read functions.
-      *  which is interesting since it changes the internal state
-      *
-      * NULL can be returned when no metadata was sent, OR if there was an issue
-      * unpacking the serialized data (i.e. bad parcel or invalid structure).
-      */
-    static status_t readFromParcel(const Parcel &parcel,
-                                   camera_metadata_t** out);
-    /**
-      * Caller retains ownership of metadata
-      * - Write 2 (int32 + blob) args in the current position
-      */
-    static status_t writeToParcel(Parcel &parcel,
-                                  const camera_metadata_t* metadata);
-
-    /**
      * Find tag id for a given tag name, also checking vendor tags if available.
      * On success, returns OK and writes the tag id into tag.
      *
@@ -238,6 +236,11 @@ class CameraMetadata {
 
 };
 
-}; // namespace android
+} // namespace helper
+} // namespace V1_0
+} // namespace common
+} // namespace camera
+} // namespace hardware
+} // namespace android
 
 #endif

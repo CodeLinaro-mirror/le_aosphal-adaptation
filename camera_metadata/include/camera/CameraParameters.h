@@ -21,6 +21,11 @@
 #include <utils/String8.h>
 
 namespace android {
+namespace hardware {
+namespace camera {
+namespace common {
+namespace V1_0 {
+namespace helper {
 
 struct Size {
     int width;
@@ -694,7 +699,11 @@ private:
     DefaultKeyedVector<String8,String8>    mMap;
 };
 
-void parseSizesList(const char *sizesStr, Vector<Size> &sizes);
-}; // namespace android
+};
+};
+};
+};
+};
+}; // namespace
 
 #endif
