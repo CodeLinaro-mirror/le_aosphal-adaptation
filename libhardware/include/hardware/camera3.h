@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #ifndef ANDROID_INCLUDE_CAMERA3_H
 #define ANDROID_INCLUDE_CAMERA3_H
 
@@ -202,6 +203,12 @@
  *   - Add is_reconfiguration_required() to camera3_device_ops_t to enable HAL to skip or
  *     trigger stream reconfiguration depending on new session parameter values.
  *
+ * 3.7: Minor revisions to support multi resolution image reader and maxResolution API
+ *
+ *    - Add metadata to expose multi resolution and max resolutions supported
+ *    - Add groupId and sensor pixel mode to camera3_stream structure to notify HAL of grouped streams and
+ *      intended pixel mode for maximum resolution.
+ *    - Add input width and height information to camera3_capture_request to enable multi resolution reprocessing.
  */
 
 /**
@@ -1464,6 +1471,25 @@ typedef enum camera3_stream_rotation {
 } camera3_stream_rotation_t;
 
 /**
+ * camera3_stream_sensor_pixel_mode:
+ *
+ * The required sensor pixel modes for this camera stream.
+ */
+typedef enum camera3_stream_sensor_pixel_mode {
+
+    /*This is the default mode, internally the HAL can implement this in any way it choses,
+    internally binning / not binning. The Bayer pattern exposed will be a regular Bayer for
+     RAW_SENSOR captures.
+    */
+
+    CAMERA3_SENSOR_PIXEL_MODE_DEFAULT = 0,
+
+    /* This is the mode in which the sensor does not operate in binned mode. It MUST offer larger
+     maximum sizes per image format as compared to default mode. */
+    CAMERA3_SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION = 1,
+
+} camera3_stream_sensor_pixel_mode_t;
+/**
  * camera3_stream_configuration_mode_t:
  *
  * This defines the general operation mode for the HAL (for a given stream configuration), where
@@ -1755,8 +1781,111 @@ typedef struct camera3_stream {
      */
     const char* physical_camera_id;
 
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     * The surface group id used for multi-resolution output streams.
+     *
+     * This works simliar to the surfaceGroupId of OutputConfiguration in the
+     * public API, with the exception that this is for multi-resolution image
+     * reader and is used by the camera HAL to choose a target stream within
+     * the same group to which images are written. All streams in the same group
+     * will have the same image format, data space, and usage flag.
+     *
+     * The framework must only call processCaptureRequest on at most one of the
+     * streams within a surface group. Depending on current active physical
+     * camera backing the logical multi-camera, or the pixel mode the camera is
+     * running in, the HAL can choose to request and return a buffer from any
+     * stream within the same group. -1 means that this stream is an input
+     * stream, or is an output stream which doesn't belong to any group.
+     *
+     * Streams with the same non-negative group id must have the same format and
+     * usage flag.
+     */
+     int group_id;
+
+
+    /**
+     * >= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *  Total number of pixel modes used by this stream
+     */
+     uint32_t num_sensor_pixel_modes_used;
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     *  The sensor pixel modes used by this stream. This can assist the camera
+     *  HAL in decision making about stream combination support.
+     *  If this is empty, the HAL must assume that this stream will only be used
+     *  with ANDROID_SENSOR_PIXEL_MODE set to ANDROID_SENSOR_PIXEL_MODE_DEFAULT.
+     */
+    camera3_stream_sensor_pixel_mode_t **sensor_pixel_modes;
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     *
+     * If an input stream is configured, whether the input stream is expected to
+     * receive variable resolution images.
+     *
+     * This flag can only be set to true if the camera device supports
+     * multi-resolution input streams by advertising input stream configurations in
+     * physicalCameraMultiResolutionStreamConfigurations in its physical cameras'
+     * characteristics.
+     *
+     * When this flag is set to true, the input stream's width and height can be
+     * any one of the supported multi-resolution input stream sizes.
+     */
+    uint32_t multi_resolution_input_image;
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 32) //Android-T or better
+    /**
+     *
+     * <= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_8:
+     * The stream use case is an enum specifying the use case of a
+     * particular stream. Examples of stream use cases are VIEWFINDER,
+     * STILL_CAPTURE, VIDEO_RECORD, VIEWFINDER_VIDEO_STILL, VIDEO_CALL, etc.
+     * Two of the common scenarios where stream use case is used are:
+     * - STILL_CAPTURE use case for YUV stream
+     * High quality YUV stream with the same quality characteristics as JPEG.
+     * - Single stream used for VIEWFINDER, RECORDING, and optionally STILL CAPTURE.
+     * Some social media applications use the same GPU surface for viewfinder,
+     * video recording, as well as still capture. This use case enables camera
+     * devices to optimize for such scenarios
+     *
+     */
+    uint64_t stream_use_case;
+#endif
+
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 32) //Android-T or better
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERISON_3_8:
+     *
+     * The dynamic range profile of the stream. This is used to support HDR10
+     * for snapshot/priview/video. HAL must inspect this field during stream
+     * configuration. For standard dynamic range, this is set to 1.
+     */
+    int dynamic_range_profile;
+#endif
     /* reserved for future use */
-    void *reserved[6];
+    void *reserved[5];
 
 } camera3_stream_t;
 
@@ -1814,6 +1943,22 @@ typedef struct camera3_stream_configuration {
      * accordingly.
      */
     const camera_metadata_t *session_parameters;
+
+    /**
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     *
+     * If an input stream is configured, whether the input stream is expected to
+     * receive variable resolution images.
+     *
+     * This flag can only be set to true if the camera device supports
+     * multi-resolution input streams by advertising input stream configurations in
+     * physicalCameraMultiResolutionStreamConfigurations in its physical cameras'
+     * characteristics.
+     *
+     * When this flag is set to true, the input stream's width and height can be
+     * any one of the supported multi-resolution input stream sizes.
+     */
+     bool multi_resolution_input_image;
 } camera3_stream_configuration_t;
 
 /**
@@ -1920,6 +2065,13 @@ typedef struct camera3_stream_buffer {
      */
     int release_fence;
 
+    /**
+     * Buffer Private data. Can be used to share internally allocated buffers.
+     * above "buffer" member is set to NULL when private buffers are used.
+     * priv can be NULL if gralloc buffers are used.
+     */
+     void *priv;
+
 } camera3_stream_buffer_t;
 
 /**
@@ -1981,7 +2133,7 @@ typedef struct camera3_stream_buffer_set {
  * sure that the output stream buffer is large enough for the transport header.
  */
 typedef struct camera3_jpeg_blob {
-    uint16_t jpeg_blob_id;
+    uint32_t jpeg_blob_id;
     uint32_t jpeg_size;
 } camera3_jpeg_blob_t;
 
@@ -2123,6 +2275,14 @@ typedef struct camera3_shutter_msg {
      * metadata's sensor exposure start timestamp.
      */
     uint64_t timestamp;
+
+    /**
+     * Timestamp for the capture readout. This must be in the same time domain
+     * as timestamp, and for a rolling shutter sensor, the value must be
+     * timestamp + exposureTime + t_crop_top where t_crop_top is the exposure time
+     * skew of the cropped lines on the top.
+     */
+    uint64_t readoutTimestamp;
 
 } camera3_shutter_msg_t;
 
@@ -2495,6 +2655,56 @@ typedef struct camera3_capture_request {
      */
     const camera_metadata_t **physcam_settings;
 
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 31) //Android-S or better
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_6:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERSION_3_7:
+     * The width and height of the input buffer for this capture request.
+     *
+     * These fields will be [0, 0] if no input buffer exists in the capture
+     * request.
+     *
+     * If the stream configuration contains an input stream and has the
+     * multiResolutionInputImage flag set to true, the camera client may submit a
+     * reprocessing request with input buffer size different than the
+     * configured input stream size. In that case, the inputWith and inputHeight
+     * fields will be the actual size of the input image.
+     *
+     * If the stream configuration contains an input stream and the
+     * multiResolutionInputImage flag is false, the inputWidth and inputHeight must
+     * match the input stream size.
+     */
+     uint32_t inputWidth;
+     uint32_t inputHeight;
+#endif
+
+    /**
+     * Private Metadata settings.
+     * If not NULL, corresponding camera_metadata_t can be ignored.
+     * If NULL, actual camera_metadata_t setting members in request can be valid.
+     * These are used for input metadata communication only.
+     * Size of array for "priv_physcam_settings" still uses above
+     * num_physcam_settings and physcam_id.
+     * Input settings provided here shall be freed once we have result for this
+     * request.
+     **/
+     void *priv_settings;
+     void **priv_physcam_settings;
+
+     /**
+      * Memory for result metadata for this capture.
+      * Empty metadata provided update capture result metatdaa.
+      * If not NULL, final metadata should be generated on provided memory.
+      * If NULL, result metadata memory is allocated and owned by producer.
+      **/
+     void *priv_result;
+     const char **priv_physcam_id;
+     uint32_t num_priv_physcam_results;
+     void **priv_physcam_result;
 } camera3_capture_request_t;
 
 /**
@@ -2704,16 +2914,18 @@ typedef struct camera3_capture_result {
      const camera_metadata_t **physcam_metadata;
 
      /**
-      * Add timestamp when HAL buffer result return to framework from
-      * camera HAL in camera3_capture_result_t for this LE_CAMERA3_HAL_API == 1
-      * API version.
-      * This timestamp type is CLOCK_BOOTTIME.
-      * And this value should be set in camera HAL.
-      */
-#if defined(LE_CAMERA3_HAL_API) && (LE_CAMERA3_HAL_API == 1)
-     uint64_t timestamp;
-#endif
-
+      * Private Metadata results for this capture.
+      * If not NULL, corresponding camera_metadata_t can be ignored.
+      * If NULL, actual camera_metadata_t result members in result can be valid.
+      * Size of array for "priv_physcam_settings" still uses above
+      * num_physcam_settings and physcam_id.
+      * Output metadata memory pointers provided in camera3_capture_request_t
+      * will be populated here.
+      * Input metadata provided in camera3_capture_request_t can be freed once we
+      * have result.
+      **/
+     void *priv_metadata;
+     void **priv_physcam_metadata;
 } camera3_capture_result_t;
 
 /**********************************************************************

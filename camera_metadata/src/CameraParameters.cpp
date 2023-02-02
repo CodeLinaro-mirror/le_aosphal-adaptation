@@ -15,15 +15,29 @@
 ** limitations under the License.
 */
 
+/*
+** Changes from Qualcomm Innovation Center are provided under the following license:
+**
+** Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+** SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #define LOG_TAG "CameraParams"
-#include <utils/Log.h>
+#include <log/log.h>
 
 #include <string.h>
 #include <stdlib.h>
-#include <camera/CameraParameters.h>
+#include <unistd.h>
+#include "CameraParameters.h"
 #include <system/graphics.h>
 
 namespace android {
+namespace hardware {
+namespace camera {
+namespace common {
+namespace V1_0 {
+namespace helper {
+
 // Parameter keys to communicate between camera application and driver.
 const char CameraParameters::KEY_PREVIEW_SIZE[] = "preview-size";
 const char CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES[] = "preview-size-values";
@@ -237,14 +251,14 @@ void CameraParameters::unflatten(const String8 &params)
 
 void CameraParameters::set(const char *key, const char *value)
 {
-    // XXX i think i can do this with strspn()
+    // i think i can do this with strspn()
     if (strchr(key, '=') || strchr(key, ';')) {
-        //XXX ALOGE("Key \"%s\"contains invalid character (= or ;)", key);
+        // ALOGE("Key \"%s\"contains invalid character (= or ;)", key);
         return;
     }
 
     if (strchr(value, '=') || strchr(value, ';')) {
-        //XXX ALOGE("Value \"%s\"contains invalid character (= or ;)", value);
+        // ALOGE("Value \"%s\"contains invalid character (= or ;)", value);
         return;
     }
 
@@ -294,7 +308,7 @@ void CameraParameters::remove(const char *key)
 }
 
 // Parse string like "640x480" or "10000,20000"
-int parse_pair(const char *str, int *first, int *second, char delim,
+static int parse_pair(const char *str, int *first, int *second, char delim,
                       char **endptr = NULL)
 {
     // Find the first integer.
@@ -319,7 +333,7 @@ int parse_pair(const char *str, int *first, int *second, char delim,
     return 0;
 }
 
-void parseSizesList(const char *sizesStr, Vector<Size> &sizes)
+static void parseSizesList(const char *sizesStr, Vector<Size> &sizes)
 {
     if (sizesStr == 0) {
         return;
@@ -534,4 +548,9 @@ bool CameraParameters::isEmpty() const {
     return mMap.isEmpty();
 }
 
+};
+};
+};
+};
+};
 }; // namespace android
