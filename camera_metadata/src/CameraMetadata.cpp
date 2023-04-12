@@ -39,9 +39,9 @@
 #include "CameraMetadata.h"
 #include "VendorTagDescriptor.h"
 
+using Parcel = android::Parcel;
+
 namespace android {
-typedef Parcel::WritableBlob WritableBlob;
-typedef Parcel::ReadableBlob ReadableBlob;
 namespace hardware {
 namespace camera {
 namespace common {
@@ -503,7 +503,7 @@ status_t CameraMetadata::readFromParcel(const Parcel& data,
     // NOTE: this doesn't make sense to me. shouldn't the blob
     // know how big it is? why do we have to specify the size
     // to Parcel::readBlob ?
-    ReadableBlob blob;
+    Parcel::ReadableBlob blob;
     // arg1 = metadata (blob)
     do {
         if ((err = data.readBlob(blobSize, &blob)) != OK) {
@@ -621,7 +621,7 @@ status_t CameraMetadata::writeToParcel(Parcel& data,
      * |------------------------------------|<----End address of blob.
      *                                            (Blob start address + blob size).
      */
-    WritableBlob blob;
+    Parcel::WritableBlob blob;
     do {
         res = data.writeBlob(blobSize, false, &blob);
         if (res != OK) {

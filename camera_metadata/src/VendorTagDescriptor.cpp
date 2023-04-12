@@ -45,6 +45,8 @@
 #include <stdio.h>
 #include <string.h>
 
+using Parcel = android::Parcel;
+
 namespace android {
 namespace hardware {
 namespace camera2 {

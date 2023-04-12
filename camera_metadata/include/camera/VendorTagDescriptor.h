@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <unordered_map>
 
-using Parcel = android::Parcel;
 namespace android {
 namespace hardware {
 namespace camera2 {
@@ -178,7 +177,7 @@ class VendorTagDescriptor :
      *
      * Returns OK on success, or a negative error code.
      */
-    static status_t createFromParcel(const Parcel* parcel,
+    static status_t createFromParcel(const android::Parcel* parcel,
             /*out*/
             sp<VendorTagDescriptor>& descriptor);
 
@@ -187,7 +186,7 @@ class VendorTagDescriptor :
      *
      * Returns OK on success, or a negative error code.
      */
-    virtual status_t readFromParcel(const Parcel* parcel);
+    virtual status_t readFromParcel(const android::Parcel* parcel);
     /**
      * Write the VendorTagDescriptor object into the given parcel.
      *
@@ -195,7 +194,7 @@ class VendorTagDescriptor :
      */
     status_t writeToParcel(
             /*out*/
-            Parcel* parcel) const;
+            android::Parcel* parcel) const;
 
 };
 

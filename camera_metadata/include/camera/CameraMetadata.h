@@ -39,7 +39,6 @@
 #include <utils/Vector.h>
 #include <binder/Parcel.h>
 
-using Parcel = android::Parcel;
 namespace android {
 namespace hardware {
 namespace camera {
@@ -213,8 +212,8 @@ class CameraMetadata {
      */
 
     // Metadata object is unchanged when reading from parcel fails.
-    status_t readFromParcel(Parcel *parcel);
-    status_t writeToParcel(Parcel *parcel) const;
+    status_t readFromParcel(android::Parcel *parcel);
+    status_t writeToParcel(android::Parcel *parcel) const;
 
     /**
       * Caller becomes the owner of the new metadata
@@ -224,13 +223,13 @@ class CameraMetadata {
       * NULL can be returned when no metadata was sent, OR if there was an issue
       * unpacking the serialized data (i.e. bad parcel or invalid structure).
       */
-    static status_t readFromParcel(const Parcel &parcel,
+    static status_t readFromParcel(const android::Parcel &parcel,
                                    camera_metadata_t** out);
     /**
       * Caller retains ownership of metadata
       * - Write 2 (int32 + blob) args in the current position
       */
-    static status_t writeToParcel(Parcel &parcel,
+    static status_t writeToParcel(android::Parcel &parcel,
                                   const camera_metadata_t* metadata);
 
     /**
