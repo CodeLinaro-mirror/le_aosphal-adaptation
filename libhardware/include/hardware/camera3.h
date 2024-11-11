@@ -1884,8 +1884,29 @@ typedef struct camera3_stream {
      */
     int dynamic_range_profile;
 #endif
-    /* reserved for future use */
-    void *reserved[5];
+
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 33) //Android-U or better
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_8:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERISON_3_9:
+     *
+     * The color space of the stream. This is used to support specifying wide gamut
+     * color spaces. When specified, this field is the ultimate authority over the
+     * color space of the stream, regardless of data_space. If it is not specified,
+     * the data_space of the stream will be used to imply the color space. HAL must
+     * inspect this field during stream configuration.
+     */
+    int color_space;
+#endif
+
+    /* reserved for Camera Vendor HAL use. Customers are not expected to use these reserved fields. */
+    void *hal_reserved[6];
+
+    /* reserved for future use, Customers can map these reserved fields based on their requirements */
+    void *reserved[4];
 
 } camera3_stream_t;
 
@@ -3466,6 +3487,40 @@ typedef struct camera3_device_ops {
             int type);
 
     /**
+     * construct_default_physical_request_settings:
+     *
+     * Create capture settings for standard camera use cases for each physical camera.
+     *
+     * The device must return a settings buffer that is configured to meet the
+     * requested use case, which must be one of the CAMERA3_TEMPLATE_*
+     * enums. All request control fields must be included.
+     *
+     * The HAL retains ownership of this structure, but the pointer to the
+     * structure must be valid until the device is closed. The framework and the
+     * HAL may not modify the buffer once it is returned by this call. The same
+     * buffer may be returned for subsequent calls for the same template, or for
+     * other templates.
+     *
+     * Performance requirements:
+     *
+     * This should be a non-blocking call. The HAL should return from this call
+     * in 1ms, and must return from this call in 5ms.
+     *
+     * Return values:
+     *
+     *   Valid metadata: On successful creation of a default settings
+     *                   buffer.
+     *
+     *   NULL:           In case of a fatal error. After this is returned, only
+     *                   the close() method can be called successfully by the
+     *                   framework.
+     */
+    const camera_metadata_t* (*construct_default_physical_request_settings)(
+            const struct camera3_device *,
+            int type,
+            int physicalCameraId);
+
+    /**
      * process_capture_request:
      *
      * Send a new capture request to the HAL. The HAL should not return from
@@ -3755,6 +3810,23 @@ typedef struct camera3_device_ops {
     int (*is_reconfiguration_required)(const struct camera3_device*,
             const camera_metadata_t* old_session_params,
             const camera_metadata_t* new_session_params);
+
+    /**
+     * repeating_request_end:
+     *
+     * <= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *    Not defined and must be NULL
+     *
+     * >= CAMERA_DEVICE_API_VERISON_3_8:
+     *
+     * Process repeating request end.
+     *
+     */
+    void (*repeating_request_end)(const struct camera3_device*,
+            int32_t  in_frame_number,
+            uint32_t num_streams,
+            const camera3_stream_t* const* streams);
 
     /* reserved for future use */
     void *reserved[6];

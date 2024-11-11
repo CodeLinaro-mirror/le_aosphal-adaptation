@@ -864,9 +864,43 @@ typedef struct camera_stream {
      *
      */
     uint64_t stream_use_case;
+
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_7:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERISON_3_8:
+     *
+     * The dynamic range profile of the stream. This is used to support HDR10
+     * for snapshot/priview/video. HAL must inspect this field during stream
+     * configuration. For standard dynamic range, this is set to 1.
+     */
+    int dynamic_range_profile;
 #endif
-    /* reserved for future use */
-    void *reserved[5];
+
+#if defined(CAMX_ANDROID_API) && (CAMX_ANDROID_API >= 33) //Android-U or better
+    /**
+     * <= CAMERA_DEVICE_API_VERISON_3_8:
+     *
+     *    Not defined and must not be accessed.
+     *
+     * >= CAMERA_DEVICE_API_VERISON_3_9:
+     *
+     * The color space of the stream. This is used to support specifying wide gamut
+     * color spaces. When specified, this field is the ultimate authority over the
+     * color space of the stream, regardless of data_space. If it is not specified,
+     * the data_space of the stream will be used to imply the color space. HAL must
+     * inspect this field during stream configuration.
+     */
+    int color_space;
+#endif
+
+    /* reserved for Camera Vendor HAL use. Customers are not expected to use these reserved fields. */
+    void *hal_reserved[6];
+
+    /* reserved for future use, Customers can map these reserved fields based on their requirements */
+    void *reserved[4];
 
 } camera_stream_t;
 
