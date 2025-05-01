@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#define _GNU_SOURCE
 #define LOG_TAG "camera_metadata"
 
 #include <system/camera_metadata.h>
