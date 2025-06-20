@@ -28,6 +28,9 @@
 #include <system/camera_vendor_tags.h>
 #if defined(LE_CAMERA)
 #include <hardware/camera_hardware.h>
+#include <system/window.h>
+#elif defined(LOCAL_IFH)
+#include <hardware/camera_hardware.h>
 #else
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
@@ -896,6 +899,12 @@ typedef struct camera_stream {
     int color_space;
 #endif
 
+    /* Override format to communicate overriden format to the framework. */
+    int override_format;
+
+    /* Gralloc usage 64bit mask to communicate final gralloc usage flag back. */
+    uint64_t gralloc_usage;
+
     /* reserved for Camera Vendor HAL use. Customers are not expected to use these reserved fields. */
     void *hal_reserved[6];
 
@@ -934,6 +943,18 @@ typedef struct camera_stream_combination {
      *
      */
     uint32_t operation_mode;
+
+    /**
+     * >= CAMERA_DEVICE_API_VERSION_3_5:
+     *
+     * The session metadata buffer contains the initial values of
+     * ANDROID_REQUEST_AVAILABLE_SESSION_KEYS. This field is optional
+     * and camera clients can choose to ignore it, in which case it will
+     * be set to NULL. If parameters are present, then Hal should examine
+     * the parameter values and configure its internal camera pipeline
+     * accordingly.
+     */
+    const camera_metadata_t *session_parameters;
 
 } camera_stream_combination_t;
 
@@ -1088,6 +1109,49 @@ typedef struct camera_module {
      *   static metadata (camera_info.static_camera_characteristics).
      */
     int (*get_camera_info)(int camera_id, struct camera_info *info);
+
+    /**
+     * get_session_characteristics
+     *
+     * Gets the session characteristics associated with a particular session
+     * configuration by the Camera Device.
+     *
+     * Return values:
+     *
+     * 0:           On a successful operation
+     *
+     * -ENODEV:     The information cannot be provided due to an internal
+     *              error.
+     *
+     * -EINVAL:     The input arguments are invalid, i.e. the id is invalid,
+     *              and/or the module is invalid.
+     */
+    int (*get_session_characteristics)(int cameraId, camera_stream_combination_t *streams, camera_metadata_t* pCharacteristics);
+
+    /**
+     * construct_default_request_settings:
+     *
+     * Create capture settings for standard camera use cases.
+     *
+     * The device must return a settings buffer that is configured to meet the
+     * requested use case, which must be one of the CAMERA3_TEMPLATE_*
+     * enums. All request control fields must be included.
+     *
+     * The HAL retains ownership of this structure, but the pointer to the
+     * structure must be valid until the device is closed. The framework and the
+     * HAL may not modify the buffer once it is returned by this call. The same
+     * buffer may be returned for subsequent calls for the same template, or for
+     * other templates.
+     *
+     * Return values:
+     *
+     * Valid metadata: On successful creation of a default settings
+     *                 buffer.
+     *
+     * NULL:           In case of a fatal error. After this is returned
+     *
+     */
+    const camera_metadata_t* (*construct_default_request_settings)(int cameraId, int type);
 
     /**
      * set_callbacks:
@@ -1379,6 +1443,34 @@ typedef struct camera_module {
     int (*is_stream_combination_supported)(int camera_id,
             const camera_stream_combination_t *streams);
 
+    /**
+     * is_stream_combination_with_settings_supported:
+     *
+     * This is the same as isStreamCombinationSupported with below exceptions:
+     * 1. The input StreamConfiguration parameter may contain session parameters
+     * as well as additional CaptureRequest keys. See the comment
+     * sections below on what additional capture request keys are passed in
+     * StreamConfiguration::sessionParameters for each interface version. When checking if
+     * the particular StreamConfiguration is supported, the camera HAL must take all
+     * the keys in sessionParameters into consideration.
+     *
+     * 2. This function must return true for all supported combinations, and return false for
+     * non-supported feature combinations. The list of feature combinations required may grow
+     * in future HAL versions.
+     *
+     * Return values:
+     *
+     * 0:           In case the stream combination is supported.
+     *
+     * -EINVAL:     The input arguments are invalid, i.e. the id is invalid,
+     *              and/or the module is invalid.
+     *
+     * -ENODEV:     The information cannot be provided due to an internal
+     *              error.
+     *
+     */
+    int (*is_stream_combination_with_settings_supported)(int camera_id,
+        const camera_stream_combination_t *streams, bool* supported);
     /**
      * notify_device_state_change:
      *
