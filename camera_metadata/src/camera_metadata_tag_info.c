@@ -268,6 +268,12 @@ static tag_info_t android_control[ANDROID_CONTROL_END -
     { "aeRegionsSet",                  TYPE_BYTE   },
     [ ANDROID_CONTROL_AWB_REGIONS_SET - ANDROID_CONTROL_START ] =
     { "awbRegionsSet",                 TYPE_BYTE   },
+    [ ANDROID_CONTROL_SETTINGS_OVERRIDE - ANDROID_CONTROL_START ] =
+    { "settingsOverride",              TYPE_INT32  },
+    [ ANDROID_CONTROL_AVAILABLE_SETTINGS_OVERRIDES - ANDROID_CONTROL_START ] =
+    { "availableSettingsOverrides",    TYPE_INT32  },
+    [ ANDROID_CONTROL_SETTINGS_OVERRIDING_FRAME_NUMBER - ANDROID_CONTROL_START ] =
+    { "settingsOverridingFrameNumber", TYPE_INT32  },
 };
 
 static tag_info_t android_demosaic[ANDROID_DEMOSAIC_END -
@@ -475,6 +481,8 @@ static tag_info_t android_request[ANDROID_REQUEST_END -
     [ ANDROID_REQUEST_RECOMMENDED_TEN_BIT_DYNAMIC_RANGE_PROFILE - ANDROID_REQUEST_START ] =
     { "recommendedTenBitDynamicRangeProfile",
                                         TYPE_INT64  },
+    [ ANDROID_REQUEST_AVAILABLE_COLOR_SPACE_PROFILES_MAP - ANDROID_REQUEST_START ] =
+    { "availableColorSpaceProfilesMap", TYPE_INT64  },
 };
 
 static tag_info_t android_scaler[ANDROID_SCALER_END -
@@ -543,6 +551,8 @@ static tag_info_t android_scaler[ANDROID_SCALER_END -
     { "cropRegionSet",                 TYPE_BYTE   },
     [ ANDROID_SCALER_AVAILABLE_STREAM_USE_CASES - ANDROID_SCALER_START ] =
     { "availableStreamUseCases",       TYPE_INT64  },
+    [ ANDROID_SCALER_RAW_CROP_REGION - ANDROID_SCALER_START ] =
+    { "rawCropRegion",                 TYPE_INT32  },
 };
 
 static tag_info_t android_sensor[ANDROID_SENSOR_END -
