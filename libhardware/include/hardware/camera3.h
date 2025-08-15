@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef ANDROID_INCLUDE_CAMERA3_H
 #define ANDROID_INCLUDE_CAMERA3_H
 
@@ -1901,6 +1900,12 @@ typedef struct camera3_stream {
      */
     int color_space;
 #endif
+
+    /* Field used for communicating overriden format to the framework */
+    int override_format;
+
+    /* Field used for communicating final gralloc usage flag back to the framework */
+    uint64_t gralloc_usage;
 
     /* reserved for Camera Vendor HAL use. Customers are not expected to use these reserved fields. */
     void *hal_reserved[6];
