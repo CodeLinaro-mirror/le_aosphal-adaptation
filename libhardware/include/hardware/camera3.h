@@ -1900,7 +1900,7 @@ typedef struct camera3_stream {
      */
     int color_space;
 #endif
-
+    int buffer_size;
     /* Field used for communicating overriden format to the framework */
     int override_format;
 
@@ -1908,7 +1908,7 @@ typedef struct camera3_stream {
     uint64_t gralloc_usage;
 
     /* reserved for Camera Vendor HAL use. Customers are not expected to use these reserved fields. */
-    void *hal_reserved[6];
+    void *hal_reserved[7];
 
     /* reserved for future use, Customers can map these reserved fields based on their requirements */
     void *reserved[4];

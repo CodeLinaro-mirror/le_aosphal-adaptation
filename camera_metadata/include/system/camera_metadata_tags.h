@@ -131,6 +131,10 @@ typedef enum camera_metadata_tag {
     ANDROID_COLOR_CORRECTION_ABERRATION_MODE,         // enum         | public       | HIDL v3.2
     ANDROID_COLOR_CORRECTION_AVAILABLE_ABERRATION_MODES,
                                                       // byte[]       | public       | HIDL v3.2
+    ANDROID_COLOR_CORRECTION_COLOR_TEMPERATURE,       // int32        | public       | HIDL v3.11
+    ANDROID_COLOR_CORRECTION_COLOR_TINT,              // int32        | public       | HIDL v3.11
+    ANDROID_COLOR_CORRECTION_COLOR_TEMPERATURE_RANGE, // int32[]      | public       | HIDL v3.11
+    ANDROID_COLOR_CORRECTION_AVAILABLE_MODES,         // byte[]       | public       | HIDL v3.11
     ANDROID_COLOR_CORRECTION_END,
 
     ANDROID_CONTROL_AE_ANTIBANDING_MODE =             // enum         | public       | HIDL v3.2
@@ -200,6 +204,9 @@ typedef enum camera_metadata_tag {
     ANDROID_CONTROL_LOW_LIGHT_BOOST_INFO_LUMINANCE_RANGE,
                                                       // float[]      | public       | AIDL
     ANDROID_CONTROL_LOW_LIGHT_BOOST_STATE,            // enum         | public       | AIDL
+    ANDROID_CONTROL_ZOOM_METHOD,                      // enum         | fwk_public
+    ANDROID_CONTROL_AE_PRIORITY_MODE,                 // enum         | public       | HIDL v3.11
+    ANDROID_CONTROL_AE_AVAILABLE_PRIORITY_MODES,      // byte[]       | public       | HIDL v3.11
     ANDROID_CONTROL_END,
 
     ANDROID_DEMOSAIC_MODE =                           // enum         | system       | HIDL v3.2
@@ -540,6 +547,8 @@ typedef enum camera_metadata_tag {
             ANDROID_LOGICAL_MULTI_CAMERA_START,
     ANDROID_LOGICAL_MULTI_CAMERA_SENSOR_SYNC_TYPE,    // enum         | public       | HIDL v3.3
     ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID,  // byte         | public       | HIDL v3.4
+    ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION,
+                                                      // int32[]      | public       | HIDL v3.10
     ANDROID_LOGICAL_MULTI_CAMERA_END,
 
     ANDROID_DISTORTION_CORRECTION_MODE =              // enum         | public       | HIDL v3.3
@@ -584,6 +593,7 @@ typedef enum camera_metadata_enum_android_color_correction_mode {
     ANDROID_COLOR_CORRECTION_MODE_TRANSFORM_MATRIX                  , // HIDL v3.2
     ANDROID_COLOR_CORRECTION_MODE_FAST                              , // HIDL v3.2
     ANDROID_COLOR_CORRECTION_MODE_HIGH_QUALITY                      , // HIDL v3.2
+    ANDROID_COLOR_CORRECTION_MODE_CCT                               , // HIDL v3.11
 } camera_metadata_enum_android_color_correction_mode_t;
 
 // ANDROID_COLOR_CORRECTION_ABERRATION_MODE
@@ -1417,3 +1427,9 @@ typedef enum camera_metadata_enum_android_automotive_lens_facing {
     ANDROID_AUTOMOTIVE_LENS_FACING_INTERIOR_SEAT_ROW_3_RIGHT        , // HIDL v3.8
 } camera_metadata_enum_android_automotive_lens_facing_t;
 
+// ANDROID_CONTROL_AE_PRIORITY_MODE
+typedef enum camera_metadata_enum_android_control_ae_priority_mode {
+    ANDROID_CONTROL_AE_PRIORITY_MODE_OFF                            , // HIDL v3.11
+    ANDROID_CONTROL_AE_PRIORITY_MODE_SENSOR_SENSITIVITY_PRIORITY    , // HIDL v3.11
+    ANDROID_CONTROL_AE_PRIORITY_MODE_SENSOR_EXPOSURE_TIME_PRIORITY  , // HIDL v3.11
+} camera_metadata_enum_android_control_ae_priority_mode_t;
